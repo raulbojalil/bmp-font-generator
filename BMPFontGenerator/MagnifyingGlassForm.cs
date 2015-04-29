@@ -19,14 +19,11 @@ namespace BMPFontGenerator
         {
             pictureBox1.Size = new System.Drawing.Size(image.Width, image.Height);
             pictureBox1.Image = image;
-            
-
         }
 
         public void SetImageLocation(Point location)
         {
             pictureBox1.Location = location;
-            
         }
     }
 }

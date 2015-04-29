@@ -65,6 +65,7 @@
             this.groupBox6 = new System.Windows.Forms.GroupBox();
             this.label6 = new System.Windows.Forms.Label();
             this.label5 = new System.Windows.Forms.Label();
+            this.saveTransparentBackgroundPNGToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudFontSize)).BeginInit();
             this.menuStrip1.SuspendLayout();
@@ -151,6 +152,7 @@
             // 
             this.archivoToolStripMenuItem1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.guardarToolStripMenuItem,
+            this.saveTransparentBackgroundPNGToolStripMenuItem,
             this.guardarcomoToolStripMenuItem,
             this.toolStripSeparator1,
             this.salirToolStripMenuItem});
@@ -164,28 +166,30 @@
             this.guardarToolStripMenuItem.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.guardarToolStripMenuItem.Name = "guardarToolStripMenuItem";
             this.guardarToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.S)));
-            this.guardarToolStripMenuItem.Size = new System.Drawing.Size(194, 22);
-            this.guardarToolStripMenuItem.Text = "&Save BMP";
+            this.guardarToolStripMenuItem.Size = new System.Drawing.Size(271, 22);
+            this.guardarToolStripMenuItem.Text = "&Save as BMP file";
             this.guardarToolStripMenuItem.Click += new System.EventHandler(this.guardarToolStripButton_Click);
             // 
             // guardarcomoToolStripMenuItem
             // 
             this.guardarcomoToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("guardarcomoToolStripMenuItem.Image")));
             this.guardarcomoToolStripMenuItem.Name = "guardarcomoToolStripMenuItem";
-            this.guardarcomoToolStripMenuItem.Size = new System.Drawing.Size(194, 22);
-            this.guardarcomoToolStripMenuItem.Text = "Export to header file (.h)";
+            this.guardarcomoToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.H)));
+            this.guardarcomoToolStripMenuItem.Size = new System.Drawing.Size(271, 22);
+            this.guardarcomoToolStripMenuItem.Text = "Export to &header file (.h)";
             this.guardarcomoToolStripMenuItem.Click += new System.EventHandler(this.toolStripButton1_Click);
             // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(191, 6);
+            this.toolStripSeparator1.Size = new System.Drawing.Size(268, 6);
             // 
             // salirToolStripMenuItem
             // 
             this.salirToolStripMenuItem.Name = "salirToolStripMenuItem";
-            this.salirToolStripMenuItem.Size = new System.Drawing.Size(194, 22);
-            this.salirToolStripMenuItem.Text = "&Salir";
+            this.salirToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.F4)));
+            this.salirToolStripMenuItem.Size = new System.Drawing.Size(271, 22);
+            this.salirToolStripMenuItem.Text = "Exit";
             this.salirToolStripMenuItem.Click += new System.EventHandler(this.salirToolStripMenuItem_Click);
             // 
             // ayudaToolStripMenuItem
@@ -411,11 +415,6 @@
             this.nudPaddingRight.Name = "nudPaddingRight";
             this.nudPaddingRight.Size = new System.Drawing.Size(58, 20);
             this.nudPaddingRight.TabIndex = 1;
-            this.nudPaddingRight.Value = new decimal(new int[] {
-            6,
-            0,
-            0,
-            -2147483648});
             this.nudPaddingRight.ValueChanged += new System.EventHandler(this.RefreshFontMap);
             // 
             // nudPaddingLeft
@@ -490,6 +489,13 @@
             this.label5.Size = new System.Drawing.Size(31, 13);
             this.label5.TabIndex = 7;
             this.label5.Text = "Fore:";
+            // 
+            // saveTransparentBackgroundPNGToolStripMenuItem
+            // 
+            this.saveTransparentBackgroundPNGToolStripMenuItem.Name = "saveTransparentBackgroundPNGToolStripMenuItem";
+            this.saveTransparentBackgroundPNGToolStripMenuItem.Size = new System.Drawing.Size(271, 22);
+            this.saveTransparentBackgroundPNGToolStripMenuItem.Text = "Save as transparent background PNG file";
+            this.saveTransparentBackgroundPNGToolStripMenuItem.Click += new System.EventHandler(this.saveTransparentBackgroundPNGToolStripMenuItem_Click);
             // 
             // Main
             // 
@@ -573,6 +579,7 @@
         private System.Windows.Forms.GroupBox groupBox6;
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.ToolStripMenuItem saveTransparentBackgroundPNGToolStripMenuItem;
     }
 }
 

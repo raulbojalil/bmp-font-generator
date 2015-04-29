@@ -24,7 +24,42 @@ namespace BMPFontGenerator
         private Color _currentBackColor = Color.Magenta;
         private MagnifyingGlassForm _mglass = null;
 
-        public Bitmap GenerateFontMap(string fontFamily, int fontSize, FontStyle fontStyle, Color fontColor, Color backColor, string characters, int bitmapWidth, int bitmapHeight, int paddingLeft, int paddingRight, bool drawGrid, out string code)
+        public static Rectangle MeasureCharacterSize(char character, Font font, PixelFormat pixelFormat, TextRenderingHint trh)
+        {
+            var size = TextRenderer.MeasureText(character.ToString(), font);
+
+            using (Bitmap bitmap = new Bitmap(size.Width, size.Height, pixelFormat))
+            {
+                using (Graphics graphics = Graphics.FromImage(bitmap))
+                {
+                    graphics.TextRenderingHint = trh;
+                    graphics.Clear(Color.Transparent);
+                    graphics.DrawString(character.ToString(), font, new SolidBrush(Color.Black), new PointF(0, 0));
+                }
+
+                var paddingLeft = -1;
+                var paddingRight = -1;
+
+                for (var x = 0; x < bitmap.Width; x++)
+                {
+                    for (var y = 0; y < bitmap.Height; y++)
+                    {
+                        var rightX = bitmap.Width - 1 - x;
+                        if (paddingLeft == -1 && bitmap.GetPixel(x, y).A != 0)
+                            paddingLeft = x;
+                        if (paddingRight == -1 && bitmap.GetPixel(rightX, y).A != 0)
+                            paddingRight = rightX;
+
+                        if (paddingLeft != -1 && paddingRight != -1)
+                            return new Rectangle(paddingLeft, 0, paddingRight - paddingLeft + 1, size.Height);
+                    }
+                }
+
+                return new Rectangle(0, 0, size.Width, size.Height);
+            }
+        }
+
+        public static Bitmap GenerateFontMap(string fontFamily, int fontSize, FontStyle fontStyle, Color fontColor, Color backColor, TextRenderingHint textRenderingHint, string characters, int bitmapWidth, int bitmapHeight, int paddingLeft, int paddingRight, bool drawGrid, out string code)
         {
             PointF location = new PointF(0f, 0f);
             StringBuilder codeBuilder = new StringBuilder();
@@ -32,15 +67,16 @@ namespace BMPFontGenerator
 
             var maxCharVal = 0;
 
-            Bitmap bitmap = new Bitmap(bitmapWidth, bitmapHeight, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            Bitmap bitmap = new Bitmap(bitmapWidth, bitmapHeight, PixelFormat.Format32bppArgb);
 
             using (Graphics graphics = Graphics.FromImage(bitmap))
             {
-                graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+                graphics.TextRenderingHint = textRenderingHint;
                 var maxCharHeight = 0;
+
                 graphics.Clear(backColor);
 
-                using (Font arialFont = new Font(fontFamily, fontSize, fontStyle))
+                using (Font font = new Font(fontFamily, fontSize, fontStyle))
                 {
                     for (var i = 0; i < characters.Length; i++)
                     {
@@ -49,28 +85,26 @@ namespace BMPFontGenerator
                         if (charVal > maxCharVal)
                             maxCharVal = charVal;
 
-                        var characterToDraw = "" + characters[i];
-                        var size = TextRenderer.MeasureText(characterToDraw, arialFont);
-                        size.Width += paddingRight;
+                        var size = MeasureCharacterSize(characters[i], font, bitmap.PixelFormat, graphics.TextRenderingHint); 
 
                         //TextRenderer.DrawText(graphics, characterToDraw, arialFont, new Point((int)location.X, (int)location.Y), Color.White);
-                        graphics.DrawString(characterToDraw, arialFont, new SolidBrush(fontColor), new PointF(location.X + paddingLeft, location.Y));
+                        graphics.DrawString(characters[i].ToString(), font, new SolidBrush(fontColor), new PointF(location.X - size.X + paddingLeft, location.Y));
 
-                        var rect = new Rectangle((int)location.X, (int)location.Y, (int)size.Width, (int)size.Height);
+                        var charRect = new Rectangle((int)location.X, (int)location.Y, (int)size.Width + paddingLeft + paddingRight, (int)size.Height);
 
                         if (drawGrid)
-                            graphics.DrawRectangle(new Pen(Color.FromArgb((byte)~backColor.R, (byte)~backColor.G, (byte)~backColor.B)), rect);
+                            graphics.DrawRectangle(new Pen(Color.FromArgb((byte)~backColor.R, (byte)~backColor.G, (byte)~backColor.B)), charRect);
 
-                        charsInfo.Add(charVal, rect);
+                        charsInfo.Add(charVal, charRect);
 
-                        location.X += size.Width;
+                        location.X += charRect.Width;
 
-                        if (size.Height > maxCharHeight)
-                            maxCharHeight = (int)size.Height;
+                        if (charRect.Height > maxCharHeight)
+                            maxCharHeight = (int)charRect.Height;
 
                         if (i < characters.Length - 1)
                         {
-                            if ((location.X + graphics.MeasureString(characters[i + 1].ToString(), arialFont).Width) > bitmapWidth)
+                            if ((location.X + MeasureCharacterSize(characters[i + 1], font, bitmap.PixelFormat, graphics.TextRenderingHint).Width) > bitmapWidth)
                             {
                                 location.X = 0;
                                 location.Y += maxCharHeight;
@@ -81,10 +115,11 @@ namespace BMPFontGenerator
                 }
             }
 
-
             var breakCounter = 0;
 
-            codeBuilder.AppendFormat("const Rect [VAR_NAME][{0}] = {{", maxCharVal + 1);
+            codeBuilder.AppendFormat("const u16 {{0}}_width = {0};\r\n", bitmap.Width);
+            codeBuilder.AppendFormat("const u16 {{0}}_height = {0};\r\n", bitmap.Height); 
+            codeBuilder.AppendFormat("const Rect {{0}}[{0}] = {{{{", maxCharVal + 1);
             for (var i = 0; i <= maxCharVal; i++)
             {
 
@@ -92,9 +127,9 @@ namespace BMPFontGenerator
                     codeBuilder.Append(",");
 
                 if (charsInfo.ContainsKey(i))
-                    codeBuilder.AppendFormat("{{{0},{1},{2},{3}}}", charsInfo[i].X, charsInfo[i].Y, charsInfo[i].Width, charsInfo[i].Height);
+                    codeBuilder.AppendFormat("{{{{{0},{1},{2},{3}}}}}", charsInfo[i].X, charsInfo[i].Y, charsInfo[i].Width, charsInfo[i].Height);
                 else
-                    codeBuilder.Append("{0,0,0,0}");
+                    codeBuilder.Append("{{0,0,0,0}}");
 
                 breakCounter++;
 
@@ -104,7 +139,7 @@ namespace BMPFontGenerator
                     breakCounter = 0;
                 }
             }
-            codeBuilder.Append("};");
+            codeBuilder.Append("}};");
 
             code = codeBuilder.ToString();
             return bitmap;
@@ -137,7 +172,13 @@ namespace BMPFontGenerator
                 var fontStyle = FontStyle.Regular;
                 fontStyle = (chkFontStyleItalic.Checked ? FontStyle.Italic : FontStyle.Regular) | (chkFontStyleBold.Checked ? FontStyle.Bold : FontStyle.Regular);
 
-                var bitmap = GenerateFontMap(cmbFontFamily.Text, (int)nudFontSize.Value, fontStyle, _currentForeColor, _currentBackColor, txtCharacterSet.Text, (int)nudBitmapWidth.Value, (int)nudBitmapHeight.Value, (int)nudPaddingLeft.Value, (int)nudPaddingRight.Value, true, out _cCode);
+                var bitmap = GenerateFontMap(cmbFontFamily.Text, (int)nudFontSize.Value, 
+                    fontStyle, _currentForeColor, _currentBackColor, 
+                    TextRenderingHint.SingleBitPerPixel, txtCharacterSet.Text, 
+                    (int)nudBitmapWidth.Value, (int)nudBitmapHeight.Value, 
+                    (int)nudPaddingLeft.Value, (int)nudPaddingRight.Value, 
+                    true, out _cCode);
+
                 pictureBox1.Image = bitmap;
                 Bitmap resized = new Bitmap(bitmap, bitmap.Width * 4, bitmap.Height * 4);
 
@@ -165,38 +206,73 @@ namespace BMPFontGenerator
             }
         }
 
-        private string GetFilename()
+        public static string GetFilename(string fontFamily, FontStyle fontStyle, int fontSize, Color fontColor)
         {
-            return (cmbFontFamily.Text + nudFontSize.Value + "_" + _currentForeColor.R.ToString("x").PadLeft(2, '0') + _currentForeColor.G.ToString("x").PadLeft(2, '0') + _currentForeColor.B.ToString("x").PadLeft(2, '0')).ToLower().Replace(" ", "");
+            var fontStyleStr = string.Empty;
+            if (fontStyle == FontStyle.Italic) fontStyleStr = "italic";
+            else if (fontStyle == FontStyle.Bold) fontStyleStr = "bold";
+
+            return (fontFamily + fontSize + "_" +
+                    fontColor.R.ToString("x").PadLeft(2, '0') +
+                    fontColor.G.ToString("x").PadLeft(2, '0') +
+                    fontColor.B.ToString("x").PadLeft(2, '0') +
+                    (!string.IsNullOrEmpty(fontStyleStr) ? ("_" + fontStyleStr) : string.Empty)
+                    ).ToLower().Replace(" ", "");
+        }
+
+        private void SaveImage(string filename, bool saveAsTBPNG)
+        {
+            var fontStyle = FontStyle.Regular;
+            fontStyle = (chkFontStyleItalic.Checked ? FontStyle.Italic : FontStyle.Regular) | (chkFontStyleBold.Checked ? FontStyle.Bold : FontStyle.Regular);
+            using(Bitmap bitmap = GenerateFontMap(cmbFontFamily.Text, (int)nudFontSize.Value, fontStyle,
+                _currentForeColor, saveAsTBPNG ? Color.Transparent : _currentBackColor,
+                saveAsTBPNG ? TextRenderingHint.AntiAlias : TextRenderingHint.SingleBitPerPixel, 
+                txtCharacterSet.Text, (int)nudBitmapWidth.Value, (int)nudBitmapHeight.Value, 
+                (int)nudPaddingLeft.Value, (int)nudPaddingRight.Value, false, out _cCode))
+            {
+                bitmap.Save(filename, saveAsTBPNG ? ImageFormat.Png : ImageFormat.Bmp);
+            }
+        }
+
+        private FontStyle GetSelectedFontStyle()
+        {
+            var fontStyle = FontStyle.Regular;
+
+            if (chkFontStyleItalic.Checked || chkFontStyleBold.Checked)
+                fontStyle = (chkFontStyleItalic.Checked ? FontStyle.Italic : 0) | (chkFontStyleBold.Checked ? FontStyle.Bold : 0);
+            return fontStyle;
+        }
+
+        private void saveTransparentBackgroundPNGToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            SaveFileDialog dialog = new SaveFileDialog();
+            dialog.Filter = "PNG Files (.png)|*.png";
+            dialog.FileName = GetFilename(cmbFontFamily.Text, GetSelectedFontStyle(), (int)nudFontSize.Value, _currentForeColor) + ".png";
+
+            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                SaveImage(dialog.FileName, true);
+            
         }
 
         private void guardarToolStripButton_Click(object sender, EventArgs e)
         {
             SaveFileDialog dialog = new SaveFileDialog();
             dialog.Filter = "Bitmap Files (.bmp)|*.bmp";
-            dialog.FileName = GetFilename() + ".bmp";
+            dialog.FileName = GetFilename(cmbFontFamily.Text, GetSelectedFontStyle(), (int)nudFontSize.Value, _currentForeColor) + ".bmp";
 
             if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-            {
-                //GenerateFontMap(cmbFontFamily.Text, (int)nudFontSize.Value, _currentColor, txtCharacters.Text, 256, 256, -2, -5, false, out _cCode).Save(dialog.FileName, ImageFormat.Bmp);
-                //pictureBox1.Image.Save(dialog.FileName, ImageFormat.Bmp);
-                var fontStyle = FontStyle.Regular;
-                fontStyle = (chkFontStyleItalic.Checked ? FontStyle.Italic : FontStyle.Regular) | (chkFontStyleBold.Checked ? FontStyle.Bold : FontStyle.Regular);
-                var bitmap = GenerateFontMap(cmbFontFamily.Text, (int)nudFontSize.Value, fontStyle, _currentForeColor, _currentBackColor, txtCharacterSet.Text, (int)nudBitmapWidth.Value, (int)nudBitmapHeight.Value, (int)nudPaddingLeft.Value, (int)nudPaddingRight.Value, false, out _cCode);
-                bitmap.Save(dialog.FileName, ImageFormat.Bmp);
-            }
+                SaveImage(dialog.FileName, false);
+            
         }
 
         private void toolStripButton1_Click(object sender, EventArgs e)
         {
             SaveFileDialog dialog = new SaveFileDialog();
-            dialog.Filter = "C Header File (.h)|*.h";
-            dialog.FileName = GetFilename() + ".h";
+            dialog.Filter = "C/C++ Header File (.h)|*.h";
+            dialog.FileName = GetFilename(cmbFontFamily.Text, GetSelectedFontStyle(), (int)nudFontSize.Value, _currentForeColor) + ".h";
 
             if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-            {
-                File.WriteAllText(dialog.FileName, _cCode.Replace("[VAR_NAME]", Path.GetFileNameWithoutExtension(dialog.FileName).Replace(" ", "_")));
-            }
+                File.WriteAllText(dialog.FileName, string.Format(_cCode, Path.GetFileNameWithoutExtension(dialog.FileName).Replace(" ", "_") ));
         }
 
         private void btnPickColor_Click(object sender, EventArgs e)
@@ -278,6 +354,8 @@ namespace BMPFontGenerator
         {
             //_mglass.Location = new Point(-9999, -9999);
         }
+
+        
     }
 
 }
