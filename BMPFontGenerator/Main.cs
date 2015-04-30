@@ -107,7 +107,7 @@ namespace BMPFontGenerator
 
                         if (i < characters.Length - 1)
                         {
-                            if ((location.X + MeasureCharacterSize(characters[i + 1], font, bitmap.PixelFormat, graphics.TextRenderingHint).Width) > bitmapWidth)
+                            if ((location.X + MeasureCharacterSize(characters[i + 1], font, bitmap.PixelFormat, graphics.TextRenderingHint).Width + paddingLeft + paddingRight) > bitmapWidth)
                             {
                                 location.X = 0;
                                 location.Y += maxCharHeight+1;
