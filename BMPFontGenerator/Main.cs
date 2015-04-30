@@ -16,6 +16,7 @@ namespace BMPFontGenerator
     {
         public Main()
         {
+
             InitializeComponent();
         }
 
@@ -26,6 +27,8 @@ namespace BMPFontGenerator
 
         public static Rectangle MeasureCharacterSize(char character, Font font, PixelFormat pixelFormat, TextRenderingHint trh)
         {
+            if (character == ' ') 
+                character = '_';
             var size = TextRenderer.MeasureText(character.ToString(), font);
 
             using (Bitmap bitmap = new Bitmap(size.Width, size.Height, pixelFormat))
@@ -107,7 +110,7 @@ namespace BMPFontGenerator
                             if ((location.X + MeasureCharacterSize(characters[i + 1], font, bitmap.PixelFormat, graphics.TextRenderingHint).Width) > bitmapWidth)
                             {
                                 location.X = 0;
-                                location.Y += maxCharHeight;
+                                location.Y += maxCharHeight+1;
                                 maxCharHeight = 0;
                             }
                         }
