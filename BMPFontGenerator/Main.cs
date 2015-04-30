@@ -27,9 +27,8 @@ namespace BMPFontGenerator
 
         public static Rectangle MeasureCharacterSize(char character, Font font, PixelFormat pixelFormat, TextRenderingHint trh)
         {
-            if (character == ' ') 
-                character = '_';
-            var size = TextRenderer.MeasureText(character.ToString(), font);
+            var characterToDraw = character == ' ' ? "_ _" : character.ToString();
+            var size = TextRenderer.MeasureText(characterToDraw, font);
 
             using (Bitmap bitmap = new Bitmap(size.Width, size.Height, pixelFormat))
             {
@@ -37,24 +36,55 @@ namespace BMPFontGenerator
                 {
                     graphics.TextRenderingHint = trh;
                     graphics.Clear(Color.Transparent);
-                    graphics.DrawString(character.ToString(), font, new SolidBrush(Color.Black), new PointF(0, 0));
+                    graphics.DrawString(characterToDraw, font, new SolidBrush(Color.Black), new PointF(0, 0));
                 }
 
                 var paddingLeft = -1;
                 var paddingRight = -1;
 
-                for (var x = 0; x < bitmap.Width; x++)
+                if (character != ' ')
                 {
-                    for (var y = 0; y < bitmap.Height; y++)
+                    for (var x = 0; x < bitmap.Width; x++)
                     {
-                        var rightX = bitmap.Width - 1 - x;
-                        if (paddingLeft == -1 && bitmap.GetPixel(x, y).A != 0)
-                            paddingLeft = x;
-                        if (paddingRight == -1 && bitmap.GetPixel(rightX, y).A != 0)
-                            paddingRight = rightX;
+                        for (var y = 0; y < bitmap.Height; y++)
+                        {
+                            var rightX = bitmap.Width - 1 - x;
+                            if (paddingLeft == -1 && bitmap.GetPixel(x, y).A != 0)
+                                paddingLeft = x;
+                            if (paddingRight == -1 && bitmap.GetPixel(rightX, y).A != 0)
+                                paddingRight = rightX;
 
-                        if (paddingLeft != -1 && paddingRight != -1)
-                            return new Rectangle(paddingLeft, 0, paddingRight - paddingLeft + 1, size.Height);
+                            if (paddingLeft != -1 && paddingRight != -1)
+                            {
+                                var width = paddingRight - paddingLeft + 1;
+                                return new Rectangle(paddingLeft, 0, width, size.Height);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    var dashFound = false;
+                    for (var x = 0; x < bitmap.Width; x++)
+                    {
+                        for (var y = 0; y < bitmap.Height; y++)
+                        {
+                            if (dashFound && paddingLeft != -1 && bitmap.GetPixel(x, y).A != 0)
+                            {
+                                var spaceSize = TextRenderer.MeasureText(" ", font);
+                                paddingRight = x;
+                                return new Rectangle(0, 0, paddingRight - paddingLeft, spaceSize.Height);
+                            }
+
+                            if (bitmap.GetPixel(x, y).A != 0)
+                            {
+                                dashFound = true;
+                                break;
+                            }
+
+                            if (dashFound && paddingLeft == -1 && y == bitmap.Height - 1)
+                                paddingLeft = x;
+                        }
                     }
                 }
 
